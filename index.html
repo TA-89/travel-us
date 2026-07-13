@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadtrip Chicago → NYC</title>
+<meta name="theme-color" content="#C8321A">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Manrope:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --paper:#F4EFE6; --card:#FDFBF6; --ink:#22262E; --dim:#7A7466;
+  --road:#C8321A; --night:#1D4ED8; --gem:#15803D; --line:#DCD3C2;
+  --display:'Bricolage Grotesque',sans-serif; --sans:'Manrope',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+header{padding:16px 16px 10px;border-bottom:3px solid var(--road)}
+h1{font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1.1}
+h1 span{color:var(--road)}
+.sub{font-family:var(--mono);font-size:.7rem;color:var(--road);margin-top:4px}
+#map{height:300px;border-bottom:2px solid var(--ink)}
+.tabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;position:sticky;top:0;background:var(--paper);z-index:500;border-bottom:1px solid var(--line)}
+.tab{flex:0 0 auto;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);
+  font-family:var(--display);font-weight:600;font-size:.85rem;padding:7px 13px;border-radius:999px;cursor:pointer}
+.tab.on{background:var(--ink);color:var(--paper)}
+main{padding:12px;max-width:680px;margin:0 auto}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:6px 0 10px}
+.dayhead h2{font-family:var(--display);font-weight:800;font-size:1.15rem}
+.dayhead .fk{font-family:var(--mono);font-size:.7rem;color:var(--dim);white-space:nowrap}
+.sechead{font-family:var(--display);font-weight:800;font-size:.72rem;letter-spacing:.09em;
+  color:var(--road);margin:14px 0 7px;padding-bottom:3px;border-bottom:2px solid var(--road)}
+.tl{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:4px}
+.tl-row{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);align-items:baseline}
+.tl-row:last-child{border-bottom:none}
+.tl-row.klick{cursor:pointer}
+.tl-row.klick:active{background:#F1EADC}
+.tl-zeit{font-family:var(--mono);font-size:.72rem;color:var(--road);flex:0 0 44px}
+.tl-text{font-size:.85rem;line-height:1.35}
+.tl-vp{font-family:var(--mono);font-size:.66rem;color:var(--night);white-space:nowrap;margin-left:auto;padding-left:6px}
+.vpnum{font-family:var(--display);font-weight:800;font-size:.8rem;color:#fff;background:var(--road);
+  border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px}
+.stop{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--road);
+  border-radius:10px;padding:11px 12px;margin-bottom:9px}
+.stop .top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.stop .zeit{font-family:var(--mono);font-size:.72rem;color:var(--road)}
+.stop h3{font-family:var(--display);font-weight:600;font-size:.98rem}
+.badge{font-family:var(--display);font-weight:600;font-size:.62rem;letter-spacing:.05em;padding:2px 7px;border-radius:4px;color:#fff}
+.b-foto{background:var(--road)} .b-gem{background:var(--gem)}
+.stop p{font-size:.86rem;margin-top:5px;color:#3a3f48}
+.stop .lnks{margin-top:7px;display:flex;gap:12px;flex-wrap:wrap}
+.stop .lnks a{font-size:.8rem;font-weight:700;color:var(--night)}
+.hotel{background:#E9EFFB;border:1.5px solid var(--night);border-radius:10px;padding:11px 12px;margin:4px 0 18px}
+.hotel h3{font-family:var(--display);font-weight:600;font-size:.95rem;color:var(--night)}
+.hotel p{font-size:.84rem;margin-top:4px}
+.hotel a.book{display:inline-block;margin-top:8px;background:var(--night);color:#fff;text-decoration:none;
+  font-family:var(--display);font-weight:600;font-size:.85rem;padding:8px 14px;border-radius:8px}
+.stand{font-size:.7rem;color:var(--dim);margin-top:6px;font-family:var(--mono)}
+.infobox{background:#EFE8D8;border:1.5px solid var(--road);border-radius:10px;padding:12px;font-size:.82rem;margin:6px 0 16px}
+footer{text-align:center;font-family:var(--mono);font-size:.68rem;color:var(--dim);padding:14px 12px 26px;border-top:1px solid var(--line)}
+footer button{margin-top:8px;background:none;border:1px solid var(--dim);color:var(--dim);
+  font-family:var(--mono);font-size:.68rem;padding:6px 10px;border-radius:6px;cursor:pointer}
+#updateBanner{display:none;position:fixed;bottom:14px;left:12px;right:12px;background:var(--ink);color:var(--paper);
+  padding:12px 14px;border-radius:10px;z-index:1000;font-size:.88rem;align-items:center;justify-content:space-between;gap:10px}
+#updateBanner button{background:var(--road);border:0;color:#fff;font-family:var(--display);font-weight:600;
+  padding:8px 14px;border-radius:8px;cursor:pointer}
+.leaflet-container{font-family:var(--sans)}
+</style>
+</head>
+<body>
+<header>
+  <h1>CHICAGO <span>→</span> NEW YORK</h1>
+  <p class="sub" id="metaline">WM-2026-ROADTRIP · 13.–17. JULI · 4 NÄCHTE</p>
+</header>
+
+<div id="map"></div>
+<nav class="tabs" id="tabs"></nav>
+<main id="content"></main>
+
+<footer>
+  <span id="verfoot">Roadtrip-PWA v1.3 — flache Struktur für Handy-Upload (12.07.2026)</span><br>
+  <span>Daten: lokale Datei · Preise: Booking.com-Suche 12.07.2026 · Karte: OSM/CARTO (braucht Internet)</span><br>
+  <button id="hardRefresh">Cache leeren + neu laden</button>
+</footer>
+
+<div id="updateBanner">
+  <span>Neue Version verfügbar</span>
+  <button id="doUpdate">Aktualisieren</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const VERSION="1.3";
+let TRIP=null, map=null, layers={};
+const TRIP_DATA={"meta": {"titel": "Chicago → New York", "zeitraum": "Mo 13. – Fr 17. Juli 2026", "stand": "12.07.2026", "quelle_preise": "Booking.com-Suche vom 12.07.2026 (günstigste Treffer mit Parkplatz)", "buchung": "Sunny Cars #15996947 · Alamo USA · Nissan Kicks SUV · All-in/AD", "hinweis": "Parkgebühren/Maut ohne Gewähr, vor Ort prüfen. Watkins-Glen-Info: Sentry Bridge seit 4.-Juli-Wochenende 2026 offen (NY State Parks / fingerlakes1.com, 08.07.2026)."}, "tage": [{"nr": 1, "titel": "Chicago → Toledo", "datum": "Mo 13.7.", "fakten": "390 km · ~4 h (+1 h Zeitzone)", "farbe": "#C8321A", "ablauf": [{"zeit": "11:00", "text": "Alamo O'Hare: Auto abholen (Upsells ablehnen, nur One-Way-Gebühr)", "vp": 1}, {"zeit": "12:30", "text": "Gepäck holen, Zmittag, Chicago verlassen"}, {"zeit": "14:00", "text": "Abfahrt Richtung Osten (I-90)"}, {"zeit": "15:00", "text": "Indiana Dunes National Park", "vp": 2}, {"zeit": "16:00", "text": "Century of Progress Homes", "vp": 3}, {"zeit": "17:00", "text": "Weiterfahrt — ab Indiana Eastern Time, Uhr +1 h"}, {"zeit": "20:30", "text": "Ankunft Toledo · Znacht Tony Packo's", "vp": 4}], "stopps": [{"zeit": "11:00", "name": "Alamo O'Hare: Auto abholen", "lat": 41.9803, "lon": -87.9067, "text": "Voucher, Führerausweis, Pass, Certo Mastercard. Alle Schalter-Upsells (CDW/SLP) ablehnen — Sunny-Cars-Paket deckt alles. Nur One-Way-Gebühr (~423 USD) fällt an, in USD zahlen (kein DCC).", "links": []}, {"zeit": "15:00", "name": "Indiana Dunes National Park", "lat": 41.6533, "lon": -87.0524, "major": true, "foto": true, "text": "Sanddünen am Lake Michigan. Lake View Beach: über das Wasser die Skyline von Chicago — 50 km entfernt, wie eine Fata Morgana. Eintritt pro Fahrzeug, Betrag vor Ort prüfen.", "links": [{"t": "nps.gov/indu", "u": "https://www.nps.gov/indu"}]}, {"zeit": "16:00", "name": "Century of Progress Homes", "lat": 41.6903, "lon": -86.9787, "gem": true, "foto": true, "text": "Beverly Shores: fünf futuristische Häuser der Chicagoer Weltausstellung 1933, per Schiff hierher verschifft — rosa Florida-Tropenhaus inklusive. Vom Strandweg frei sichtbar, kaum Touristen.", "links": [{"t": "Info (NPS)", "u": "https://www.nps.gov/indu/learn/historyculture/century-of-progress-homes.htm"}]}, {"zeit": "20:30", "name": "Znacht: Tony Packo's, Toledo", "lat": 41.6559, "lon": -83.5124, "gem": true, "text": "Ungarische Hot Dogs, Kultstatus dank der TV-Serie M*A*S*H — die Wände hängen voller signierter Hot-Dog-Brötchen von Prominenten.", "links": [{"t": "tonypacko.com", "u": "https://www.tonypacko.com"}]}], "hotel": {"name": "Quality Inn Toledo Westgate", "preis": "98.85 USD", "rating": "7.4/10 (252 Bew.)", "lat": 41.6851, "lon": -83.6222, "extra": "Gratis-Parkplatz, 24h-Rezeption", "url": "https://www.booking.com/hotel/us/hotel-secor-rd-toledo.html?aid=8132308&checkin=2026-07-13&checkout=2026-07-14&no_rooms=1&group_adults=1&selected_currency=USD"}}, {"nr": 2, "titel": "Toledo → Erie", "datum": "Di 14.7.", "fakten": "330 km + Stopps · ~4 h", "farbe": "#B45309", "ablauf": [{"zeit": "09:00", "text": "Glass Pavilion, Toledo Museum of Art", "vp": 1}, {"zeit": "10:30", "text": "Fahrt Richtung Cuyahoga Valley NP (2 h)"}, {"zeit": "12:30", "text": "Brandywine Falls (Boardwalk, 15 Min.)", "vp": 2}, {"zeit": "13:30", "text": "The Ledges Overlook (Rundweg)", "vp": 3}, {"zeit": "14:15", "text": "Everett Covered Bridge", "vp": 4}, {"zeit": "15:30", "text": "Cleveland: Heinen's + Edgewater (optional)", "vp": 5}, {"zeit": "17:30", "text": "Fahrt nach Erie (1 h 45)"}, {"zeit": "19:30", "text": "Check-in, dann Presque Isle", "vp": 6}, {"zeit": "20:55", "text": "Sonnenuntergang am Sunset Point"}], "stopps": [{"zeit": "09:00", "name": "Toledo Museum of Art — Glass Pavilion", "lat": 41.658, "lon": -83.5849, "gem": true, "text": "Weltklasse-Glaskunst in einem Gebäude komplett aus Glaswänden — Toledo ist die historische «Glass City». Eintritt gratis; Öffnungszeiten online prüfen.", "links": [{"t": "toledomuseum.org", "u": "https://www.toledomuseum.org"}]}, {"zeit": "12:00", "name": "Cuyahoga Valley NP: Brandywine Falls", "lat": 41.2763, "lon": -81.5395, "major": true, "foto": true, "text": "20-m-Schleierfall mit Boardwalk (15 Min.). Nationalpark-Eintritt gratis.", "links": [{"t": "nps.gov/cuva", "u": "https://www.nps.gov/cuva"}]}, {"zeit": "13:30", "name": "The Ledges Overlook", "lat": 41.2255, "lon": -81.5109, "foto": true, "text": "Felskante über dem Waldmeer — bestes Licht am Nachmittag. Kurzer Rundweg entlang moosbedeckter Felswände.", "links": [{"t": "Trail-Info", "u": "https://www.nps.gov/cuva/planyourvisit/the-ledges.htm"}]}, {"zeit": "14:15", "name": "Everett Covered Bridge", "lat": 41.2126, "lon": -81.5827, "gem": true, "foto": true, "text": "Letzte gedeckte Holzbrücke des Countys — herrlich fotogen und fast immer leer.", "links": [{"t": "Info (NPS)", "u": "https://www.nps.gov/cuva/planyourvisit/everett-covered-bridge.htm"}]}, {"zeit": "15:30", "name": "Cleveland: Heinen's Rotunde (optional)", "lat": 41.5012, "lon": -81.6919, "gem": true, "text": "Supermarkt in einer ehemaligen Bankhalle von 1908 mit vergoldeter Glaskuppel — einer der schönsten «Läden» der USA. Danach Skyline-Blick vom Edgewater Park.", "links": []}, {"zeit": "19:30", "name": "Presque Isle: Lighthouse + Sunset Point", "lat": 42.1633, "lon": -80.1157, "major": true, "foto": true, "text": "Sandhalbinsel im Eriesee, Eintritt gratis. Sonnenuntergang über der Süsswasser-«Meereskulisse» ca. 20:55.", "links": [{"t": "dcnr.pa.gov", "u": "https://www.dcnr.pa.gov/StateParks/FindAPark/PresqueIsleStatePark"}]}], "hotel": {"name": "Red Roof Inn Erie – I-90", "preis": "79.14 USD", "rating": "7.2/10 (581 Bew.)", "lat": 42.0713, "lon": -80.0391, "extra": "Gratis-Parkplatz · günstigste Nacht der Reise · Alternativ: Sleep Inn Erie 100.57 USD, 7.9/10", "url": "https://www.booking.com/hotel/us/red-roof-inn-erie.html?aid=8132308&checkin=2026-07-14&checkout=2026-07-15&no_rooms=1&group_adults=1&selected_currency=USD"}}, {"nr": 3, "titel": "Erie → Watkins Glen", "datum": "Mi 15.7.", "fakten": "300 km · ~3.5 h", "farbe": "#15803D", "ablauf": [{"zeit": "09:00", "text": "Abfahrt Erie (I-90 Ost → NY)"}, {"zeit": "11:00", "text": "Letchworth State Park (2 h vor Ort)", "vp": 1}, {"zeit": "13:30", "text": "Zmittag unterwegs (Mount Morris oder Dansville)"}, {"zeit": "15:00", "text": "Weinstrasse Seneca Lake (Route 14 Süd)", "vp": 2}, {"zeit": "17:30", "text": "Watkins Glen Gorge Trail (2 h)", "vp": 3}, {"zeit": "20:00", "text": "Check-in Motel mit Seeblick"}], "stopps": [{"zeit": "11:00", "name": "Letchworth SP: Middle + Upper Falls", "lat": 42.5651, "lon": -78.048, "major": true, "foto": true, "text": "«Grand Canyon of the East»: bis 180 m tiefe Schlucht des Genesee River. Upper Falls mit dem Eisenbahn-Stahlviadukt darüber — eines der besten Motive im Bundesstaat New York. Parkgebühr ca. 10 USD/Auto.", "links": [{"t": "parks.ny.gov/letchworth", "u": "https://parks.ny.gov/parks/letchworth"}]}, {"zeit": "15:00", "name": "Seneca Lake Weinstrasse (Route 14)", "lat": 42.55, "lon": -76.94, "text": "Riesling-Region der Finger Lakes. Ein Degustations-Stopp mit Seeblick lohnt sich — als Fahrer massvoll bleiben (besser 0).", "links": [{"t": "Seneca Lake Wine Trail", "u": "https://senecalakewine.com"}]}, {"zeit": "17:30", "name": "Watkins Glen Gorge Trail", "lat": 42.3745, "lon": -76.8733, "major": true, "foto": true, "text": "1.5-km-Schluchtweg mit 19 Wasserfällen, Tunnels im Fels, Weg HINTER dem Cavern Cascade durch. Rainbow Falls = meistfotografierter Punkt. Abends deutlich leerer. Parkgebühr 10 USD. Neue Sentry Bridge seit 4.-Juli-Wochenende offen — kompletter Trail zugänglich (Stand 08.07.2026).", "links": [{"t": "parks.ny.gov/watkins-glen", "u": "https://parks.ny.gov/visit/state-parks/watkins-glen-state-park"}]}], "hotel": {"name": "Gorgeous View Motel", "preis": "151.20 USD", "rating": "8.2/10 (147 Bew.)", "lat": 42.3957, "lon": -76.8873, "extra": "Gratis-Parkplatz, Feuerstelle, Blick über den Seneca Lake · Alternativ: Seneca Clipper Inn 151.20 USD (im Dorf)", "url": "https://www.booking.com/hotel/us/gorgeous-view-motel.html?aid=8132308&checkin=2026-07-15&checkout=2026-07-16&no_rooms=1&group_adults=1&selected_currency=USD"}}, {"nr": 4, "titel": "Watkins Glen → Fort Lee", "datum": "Do 16.7.", "fakten": "420 km · ~4.5 h", "farbe": "#1D4ED8", "ablauf": [{"zeit": "09:30", "text": "Taughannock Falls (Overlook + Gorge Trail)", "vp": 1}, {"zeit": "11:00", "text": "Ithaca Falls · Zmittag in Ithaca (Cornell)", "vp": 2}, {"zeit": "13:00", "text": "Abfahrt: Endless Mountains, US-6/I-380"}, {"zeit": "17:00", "text": "Delaware Water Gap, Kittatinny Point", "vp": 3}, {"zeit": "18:30", "text": "Check-in Fort Lee"}, {"zeit": "20:15", "text": "Manhattan-Skyline vom Hamilton Park", "vp": 4}], "stopps": [{"zeit": "09:30", "name": "Taughannock Falls", "lat": 42.5451, "lon": -76.6132, "major": true, "foto": true, "text": "66 m freier Fall — höher als die Niagarafälle. Overlook direkt am Parkplatz; der flache Gorge Trail führt in 45 Min. (hin+zurück) bis an den Fusskolk.", "links": [{"t": "parks.ny.gov/taughannockfalls", "u": "https://parks.ny.gov/parks/taughannockfalls"}]}, {"zeit": "11:00", "name": "Ithaca Falls", "lat": 42.4531, "lon": -76.493, "gem": true, "foto": true, "text": "45-m-Wasserfall mitten im Stadtquartier, 2 Min. ab Strassenrand, gratis. Zmittag in der Uni-Stadt (Cornell).", "links": []}, {"zeit": "17:00", "name": "Delaware Water Gap: Kittatinny Point", "lat": 40.9705, "lon": -75.1266, "foto": true, "text": "Der Delaware River bricht quer durch den Appalachen-Kamm — Viewpoint direkt an der I-80 (NJ-Seite).", "links": [{"t": "nps.gov/dewa", "u": "https://www.nps.gov/dewa"}]}, {"zeit": "20:15", "name": "Hamilton Park, Weehawken", "lat": 40.7686, "lon": -74.0187, "major": true, "foto": true, "text": "DAS klassische Manhattan-Panorama über den Hudson — bei Dämmerung (ca. 20:30) unschlagbar. Gratis Strassenparkplätze, Schilder beachten.", "links": []}], "hotel": {"name": "Best Western Fort Lee", "preis": "137.54 USD", "rating": "7.4/10 (1082 Bew.)", "lat": 40.8646, "lon": -73.9736, "extra": "Gratis-Parkplatz, direkt an der George-Washington-Bridge · Alternativ: Executive Inn 138.55 USD", "url": "https://www.booking.com/hotel/us/best-w-fort-lee.html?aid=8132308&checkin=2026-07-16&checkout=2026-07-17&no_rooms=1&group_adults=1&selected_currency=USD"}}, {"nr": 5, "titel": "Finale: Abgabe Manhattan", "datum": "Fr 17.7.", "fakten": "20 km · Puffer einplanen", "farbe": "#22262E", "ablauf": [{"zeit": "08:30", "text": "In New Jersey volltanken (Full Service, Regular 87)", "vp": 1}, {"zeit": "09:30", "text": "Fort Lee Historic Park (GW-Bridge-Blick)", "vp": 2}, {"zeit": "10:00", "text": "Über die George Washington Bridge nach Manhattan", "vp": 3}, {"zeit": "11:30", "text": "Bei der Alamo-Station sein (Adresse: Voucher)", "vp": 4}, {"zeit": "12:00", "text": "Abgabe — vorher Rundum-Fotos vom Auto"}], "stopps": [{"zeit": "08:30", "name": "In New Jersey volltanken", "lat": 40.86, "lon": -73.98, "text": "Klar günstiger als in NYC — und in NJ tankt der Tankwart (Full Service). Regular (87) reicht für den Kicks. Mit Certo zahlen, in USD.", "links": []}, {"zeit": "09:30", "name": "Fort Lee Historic Park", "lat": 40.8494, "lon": -73.9635, "foto": true, "text": "Blick auf die George Washington Bridge mit Manhattan dahinter — letztes Roadtrip-Foto.", "links": [{"t": "Park-Info", "u": "https://www.njpalisades.org/fortlee.html"}]}, {"zeit": "10:00", "name": "Über die GW Bridge → Manhattan", "lat": 40.8517, "lon": -73.9527, "text": "Maut wird üblicherweise per Kennzeichen über den Vermieter abgerechnet (Servicegebühr möglich, Mietvertrag prüfen). Freitag-Stau: 45–60 Min. für 20 km einrechnen.", "links": []}, {"zeit": "11:30", "name": "Alamo Manhattan: Abgabe bis 12:00", "lat": 40.7672, "lon": -73.9838, "major": true, "text": "Station laut Voucher: 313 W 56th St, Manhattan (Upper West Side), Fr geöffnet 08:00–18:30, Tel. +1 646 692 3999. Vor der Rückgabe Fotos vom Auto rundum machen (Car-Check in My Sunny Ride). Tankstand wie bei Übernahme. Hopp Schwiiz am Sonntag!", "links": []}], "hotel": null}]};
+
+
+async function init(){
+  TRIP=TRIP_DATA;
+  document.getElementById("metaline").textContent=
+    (TRIP.meta.zeitraum+" · "+TRIP.meta.buchung).toUpperCase();
+  buildMap(); buildTabs(); show(0);
+}
+
+function buildMap(){
+  map=L.map("map",{scrollWheelZoom:false});
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    {attribution:"&copy; OpenStreetMap &copy; CARTO",maxZoom:18}).addTo(map);
+  const all=[];
+  TRIP.tage.forEach((tag,i)=>{
+    const grp=L.layerGroup();
+    const pts=tag.stopps.map(s=>[s.lat,s.lon]);
+    if(tag.hotel)pts.push([tag.hotel.lat,tag.hotel.lon]);
+    L.polyline(pts,{color:tag.farbe,weight:4,opacity:.85}).addTo(grp);
+    tag.stopps.forEach(s=>{
+      const m=L.circleMarker([s.lat,s.lon],{radius:s.major?8:6,color:"#fff",weight:1.5,
+        fillColor:tag.farbe,fillOpacity:1}).addTo(grp);
+      m.bindPopup(popup(s,tag));
+      all.push([s.lat,s.lon]);
+    });
+    if(tag.hotel){
+      const h=tag.hotel;
+      const m=L.marker([h.lat,h.lon]).addTo(grp);
+      m.bindPopup(`<b>${h.name}</b><br>${h.preis} · ${h.rating}<br>`+
+        `<a href="${h.url}" target="_blank" rel="noopener">Booking.com</a> · `+gmaps(h.lat,h.lon));
+      all.push([h.lat,h.lon]);
+    }
+    layers[i]=grp; grp.addTo(map);
+  });
+  map.fitBounds(all,{padding:[18,18]});
+}
+function gmaps(lat,lon){return `<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank" rel="noopener">Navigation</a>`;}
+function popup(s,tag){
+  let h=`<b>${s.name}</b><br><span style="font-size:.8em">${s.zeit} · Tag ${tag.nr}</span><br>`;
+  h+=gmaps(s.lat,s.lon);
+  (s.links||[]).forEach(l=>h+=` · <a href="${l.u}" target="_blank" rel="noopener">${l.t}</a>`);
+  return h;
+}
+
+function buildTabs(){
+  const el=document.getElementById("tabs");
+  TRIP.tage.forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.className="tab"; b.textContent=`Tag ${t.nr}`;
+    b.addEventListener("click",()=>show(i));
+    el.appendChild(b);
+  });
+}
+
+function show(idx){
+  document.querySelectorAll(".tab").forEach((b,i)=>b.classList.toggle("on",i===idx));
+  const t=TRIP.tage[idx], c=document.getElementById("content");
+  let h=`<div class="dayhead"><h2>Tag ${t.nr} · ${t.titel}</h2><span class="fk">${t.datum} · ${t.fakten}</span></div>`;
+
+  // 1) Tagesablauf (Timeline) — Zeilen mit Visitpoint sind antippbar
+  h+=`<div class="sechead">TAGESABLAUF</div><div class="tl">`;
+  (t.ablauf||[]).forEach(a=>{
+    const klick=a.vp?` klick" data-vp="${a.vp}`:``;
+    h+=`<div class="tl-row${klick}"><span class="tl-zeit">${a.zeit}</span>
+        <span class="tl-text">${a.text}</span>${a.vp?`<span class="tl-vp">VP ${a.vp} ↓</span>`:``}</div>`;
+  });
+  h+=`</div>`;
+
+  // 2) Visitpoints (Detailkarten, nummeriert)
+  h+=`<div class="sechead">VISITPOINTS</div>`;
+  t.stopps.forEach((s,i)=>{
+    h+=`<div class="stop" id="vp-${i+1}" style="border-left-color:${t.farbe}"><div class="top">
+      <span class="vpnum">${i+1}</span><span class="zeit">${s.zeit}</span><h3>${s.name}</h3>`;
+    if(s.foto)h+=`<span class="badge b-foto">FOTO</span>`;
+    if(s.gem)h+=`<span class="badge b-gem">GEHEIMTIPP</span>`;
+    h+=`</div><p>${s.text}</p><div class="lnks"><a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}" target="_blank" rel="noopener">Navigation ↗</a>`;
+    (s.links||[]).forEach(l=>h+=`<a href="${l.u}" target="_blank" rel="noopener">${l.t} ↗</a>`);
+    h+=`</div></div>`;
+  });
+
+  // 3) Übernachtung
+  if(t.hotel){
+    h+=`<div class="sechead">ÜBERNACHTUNG</div>`;
+    const ho=t.hotel;
+    h+=`<div class="hotel"><h3>${ho.name}</h3>
+      <p><b>${ho.preis}</b> · ${ho.rating} · ${ho.extra}</p>
+      <a class="book" href="${ho.url}" target="_blank" rel="noopener">Auf Booking.com öffnen (Datum vorbefüllt)</a>
+      <p class="stand">Stand: ${TRIP.meta.stand} · Quelle: Booking.com-Suche · Verfügbarkeit ändert sich laufend</p></div>`;
+  }
+  if(idx===TRIP.tage.length-1){
+    h+=`<div class="infobox"><b>Praktisches:</b> ${TRIP.meta.hinweis} Maut (Indiana Toll Road, Ohio Turnpike, NY Thruway) läuft meist automatisch über den Vermieter — Servicegebühren möglich. Zeitzone: ab Indiana/Ohio +1 h. An der Säule immer in USD zahlen (kein DCC).</div>`;
+  }
+  c.innerHTML=h;
+  c.querySelectorAll(".tl-row.klick").forEach(r=>r.addEventListener("click",()=>{
+    const el=document.getElementById("vp-"+r.dataset.vp);
+    if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+  }));
+  const grp=layers[idx];
+  if(grp){const b=L.featureGroup(grp.getLayers()).getBounds();map.fitBounds(b,{padding:[24,24]});}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* PWA: Service Worker + Update-Banner + Hard-Refresh */
+let waitingSW=null;
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    reg.addEventListener("updatefound",()=>{
+      const nw=reg.installing;
+      nw.addEventListener("statechange",()=>{
+        if(nw.state==="installed" && navigator.serviceWorker.controller){
+          waitingSW=nw;
+          document.getElementById("updateBanner").style.display="flex";
+        }
+      });
+    });
+  });
+  navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
+}
+document.getElementById("doUpdate").addEventListener("click",()=>{
+  if(waitingSW)waitingSW.postMessage("SKIP_WAITING");
+});
+document.getElementById("hardRefresh").addEventListener("click",async()=>{
+  if("caches" in window){for(const k of await caches.keys())await caches.delete(k);}
+  if("serviceWorker" in navigator){
+    const regs=await navigator.serviceWorker.getRegistrations();
+    for(const r of regs)await r.unregister();
+  }
+  location.reload(true);
+});
+
+init().catch(e=>{
+  document.getElementById("content").innerHTML=
+    `<p style="padding:20px">Daten konnten nicht geladen werden (${e}). Offline und noch nie geöffnet? Einmal mit Internet laden, danach läuft die App offline.</p>`;
+});
+</script>
+</body>
+</html>
