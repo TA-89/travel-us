@@ -1,5 +1,5 @@
 /* Roadtrip CHI->NYC Service Worker — Cache-Version pro Release hochzaehlen! */
-const CACHE = "roadtrip-chi-nyc-v1.3";
+const CACHE = "roadtrip-chi-nyc-v2.0";
 const ASSETS = [
   ".", "index.html", "manifest.json", "icon-192.png", "icon-512.png",
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
